@@ -7,13 +7,14 @@ import (
 	"path/filepath"
 	"os"
 	"strings"
-	"math"
 	"sort"
 )
 
-type Tracks struct {
-	TrackList []Track
-}
+// type Tracks struct {
+// 	TrackList []Track
+// }
+
+type Tracks []Track
 
 type Track struct {
 	ArtistName  string `json: "artistName"`
@@ -22,10 +23,9 @@ type Track struct {
 	EndTime string `json: "endTime"`
 }
 
-func openJsonTracks(file string,path string) []Track {
+func openJsonTracks(file string,path string) Tracks {
 	files, _  := filepath.Glob(filepath.Join(path, file) + "*")
-	fmt.Println(files)
-	var tracks []Track
+	var tracks Tracks
 	for j:=0; j < len(files); j++ {
 
 		jsonFile, err := os.Open(files[j])
@@ -37,7 +37,7 @@ func openJsonTracks(file string,path string) []Track {
 		fmt.Println("Successfully Opened", files[j])
 		defer jsonFile.Close()
 
-		var tempTracks []Track
+		var tempTracks Tracks
 
 		byteValue, _ := ioutil.ReadAll(jsonFile)
 
@@ -50,10 +50,10 @@ func openJsonTracks(file string,path string) []Track {
 }
 
 
-func (T *Tracks) TotalTimePlayed(format string) float64{
+func (T Tracks) TotalTimePlayed(format string) float64{
 	var Time float64
-	for i, _ := range T.TrackList {
-		Time += float64(T.TrackList[i].MsPlayed)
+	for i, _ := range T {
+		Time += float64(T[i].MsPlayed)
 	}
 	switch format {
 	case "Days":
@@ -67,30 +67,67 @@ func (T *Tracks) TotalTimePlayed(format string) float64{
 	default:
 		Time = Time / 1000
 	}
-	fmt.Println("Total time played", math.Round(Time*1000)/1000, 
+	fmt.Printf("Total time played: %.3f %s. \n", Time, 
 	format)
 	return Time
 }
 
-func (T *Tracks) FindArtist(artist string) []Track{
-	var ret_tracks []Track
-	for i, _ := range T.TrackList {
-		if strings.EqualFold(T.TrackList[i].ArtistName,artist) {
-			ret_tracks = append(ret_tracks, T.TrackList[i])
+func (T Tracks) AverageTimePlayed(format string) float64{
+	var Time float64
+	for i, _ := range T {
+		Time += float64(T[i].MsPlayed)
+	}
+	switch format {
+	case "Days":
+		Time = Time / (1000 * 60 * 60 * 24)
+	case "Hours":
+		Time = Time / (1000 * 60 * 60)
+
+	case "Minutes":
+		Time = Time / (1000 * 60)
+
+	default:
+		Time = Time / 1000
+	}
+	AvgTime := Time/float64(len(T))
+	fmt.Printf("The average time played: %.3f %s.\n", 
+		AvgTime,format)
+	return AvgTime
+}
+
+func (T Tracks) FindArtist(artist string) Tracks{
+	var ret_tracks Tracks
+	for i, _ := range T {
+		if strings.EqualFold(T[i].ArtistName,artist) {
+			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
-	fmt.Println("No. of times " + artist + " was played:",
-		len(ret_tracks))
+	fmt.Printf("No. of times %s was played: %v \n",
+		artist, len(ret_tracks))
 	return ret_tracks
 }
 
-func (T *Tracks) FindTrackName(trackname string) []Track{
-	artist := "None found"
-	var ret_tracks []Track
-	for i, _ := range T.TrackList {
-		if strings.EqualFold(T.TrackList[i].TrackName,trackname) {
-			artist = T.TrackList[i].ArtistName
-			ret_tracks = append(ret_tracks, T.TrackList[i])
+func (T Tracks) FindArtistTracks(artist string) []string{
+	var ret_strings []string
+	for i, _ := range T {
+		if (strings.EqualFold(T[i].ArtistName,artist) &&
+		!stringInSlice(T[i].TrackName,ret_strings)) {
+			ret_strings = append(ret_strings, T[i].TrackName)
+		}
+	}
+	fmt.Println("No. of tracks played by",artist,":",
+		len(ret_strings))
+	fmt.Printf("Tracks played: %s \n", strings.Join(ret_strings,", "))
+	return ret_strings
+}
+
+func (T Tracks) FindTrackName(trackname string) Tracks{
+	var artist string
+	var ret_tracks Tracks
+	for i, _ := range T {
+		if strings.EqualFold(T[i].TrackName,trackname) {
+			artist = T[i].ArtistName
+			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
 	fmt.Println("No. of times", trackname,"by", artist,
@@ -99,7 +136,7 @@ func (T *Tracks) FindTrackName(trackname string) []Track{
 }
 
 
-func (T *Tracks) FindArtistPlayed() PairList{
+func (T Tracks) FindArtistPlayed() PairList{
 	dupfreq := Dup_Count(T)
 	pl := rankByWordCount(dupfreq)
 	var plays []int
@@ -124,8 +161,8 @@ func (T *Tracks) FindArtistPlayed() PairList{
 
 func main() {
 	fmt.Println("Welcome to the spotify data analyser.")
-	tracks := Tracks{TrackList: openJsonTracks("StreamingHistory",
-		"C:\\Users\\Sayed\\Desktop\\my_spotify_data\\MyData")}
+	tracks := openJsonTracks("StreamingHistory",
+		"C:\\Users\\Sayed\\Desktop\\my_spotify_data\\MyData")
 	tracks.TotalTimePlayed("Days")
 	tracks.FindArtist("Ariana Grande")
 	tracks.FindArtist("Tame Impala")
@@ -134,16 +171,21 @@ func main() {
 	tracks.FindArtist("Future")
 	tracks.FindTrackName("Borderline")
 	tracks.FindTrackName("Bad Day")
+	tracks.FindTrackName("Lost in Yesterday")
+	tracks.FindTrackName("Imagination")
+	tracks.FindTrackName("God is a Woman")
+	tracks.FindArtistTracks("Future")
 
 	tracks.FindArtistPlayed()
+	tracks.AverageTimePlayed("Seconds")
 	
 }
 
- func Dup_Count(T *Tracks) map[string]int {
+ func Dup_Count(T Tracks) map[string]int {
  	var artists []string
 
- 	for i, _ := range T.TrackList {
- 		artists = append(artists, T.TrackList[i].ArtistName)
+ 	for i, _ := range T {
+ 		artists = append(artists, T[i].ArtistName)
  	}
 
  	duplicate_frequency := make(map[string]int)
@@ -160,7 +202,14 @@ func main() {
  	//fmt.Println(duplicate_frequency)
  	return duplicate_frequency
  }
-
+func stringInSlice(a string, list []string) bool {
+    for _, b := range list {
+        if b == a {
+            return true
+        }
+    }
+    return false
+}
  func rankByWordCount(wordFrequencies map[string]int) PairList{
   pl := make(PairList, len(wordFrequencies))
   i := 0
