@@ -23,8 +23,9 @@ type Track struct {
 	EndTime string `json: "endTime"`
 }
 
-func OpenJsonTracks(file string,path string) Tracks {
+func OpenJsonTracks(file string,path string) (Tracks, string) {
 	files, _  := filepath.Glob(filepath.Join(path, file) + "*")
+	var filesString []string
 	var tracks Tracks
 	for j:=0; j < len(files); j++ {
 
@@ -33,8 +34,9 @@ func OpenJsonTracks(file string,path string) Tracks {
 		if err != nil {
 			fmt.Println(err)
 		}
-
-		fmt.Println("Successfully Opened", files[j])
+		s := fmt.Sprintf("Successfully opened %s", files[j])
+		fmt.Println(s)
+		filesString = append(filesString, s)
 		defer jsonFile.Close()
 
 		var tempTracks Tracks
@@ -46,30 +48,32 @@ func OpenJsonTracks(file string,path string) Tracks {
 		tracks = append(tracks, tempTracks...)
 	}
 
-	return tracks
+	return tracks, strings.Join(filesString,"\n")
 }
 
 
-func (T Tracks) TotalTimePlayed(format string) float64{
+func (T Tracks) TotalTimePlayed(format string) (float64, string) {
+	format = strings.ToLower(format)
 	var Time float64
 	for i, _ := range T {
 		Time += float64(T[i].MsPlayed)
 	}
 	switch format {
-	case "Days":
+	case "days":
 		Time = Time / (1000 * 60 * 60 * 24)
-	case "Hours":
+	case "hours":
 		Time = Time / (1000 * 60 * 60)
 
-	case "Minutes":
+	case "minutes":
 		Time = Time / (1000 * 60)
 
 	default:
 		Time = Time / 1000
+		format = "seconds"
 	}
 	fmt.Printf("Total time played: %.3f %s. \n", Time, 
 	format)
-	return Time
+	return Time, format
 }
 
 func (T Tracks) AverageTimePlayed(format string) float64{
@@ -95,7 +99,7 @@ func (T Tracks) AverageTimePlayed(format string) float64{
 	return AvgTime
 }
 
-func (T Tracks) FindArtist(artist string) Tracks{
+func (T Tracks) FindArtistTracksNo(artist string) int{
 	var ret_tracks Tracks
 	for i, _ := range T {
 		if strings.EqualFold(T[i].ArtistName,artist) {
@@ -104,21 +108,32 @@ func (T Tracks) FindArtist(artist string) Tracks{
 	}
 	fmt.Printf("No. of times %s was played: %v \n",
 		artist, len(ret_tracks))
-	return ret_tracks
+	return len(ret_tracks)
 }
 
-func (T Tracks) FindArtistTracks(artist string) []string{
+func (T Tracks) ToString() string {
+	var trackStrings []string
+	for i := range T {
+		s := fmt.Sprintf("%s - %s", T[i].ArtistName, T[i].TrackName)
+		trackStrings = append(trackStrings, s)
+	}
+	return strings.Join(trackStrings, "\n")
+}
+
+func (T Tracks) FindArtistTracks(artist string) Tracks{
 	var ret_strings []string
+	var ret_tracks Tracks
 	for i, _ := range T {
 		if (strings.EqualFold(T[i].ArtistName,artist) &&
 		!stringInSlice(T[i].TrackName,ret_strings)) {
 			ret_strings = append(ret_strings, T[i].TrackName)
+			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
 	fmt.Println("No. of tracks played by",artist,":",
 		len(ret_strings))
 	fmt.Printf("Tracks played: %s \n", strings.Join(ret_strings,", "))
-	return ret_strings
+	return ret_tracks
 }
 
 func (T Tracks) FindTrackName(trackname string) Tracks{

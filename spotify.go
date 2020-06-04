@@ -2,38 +2,35 @@ package main
 
 import (
 	"fmt"
+	"container/list"
 	"log"
 	"strings"
 	"spotify/gospotify"
 	"github.com/gotk3/gotk3/gtk"
+	//"strconv"
 	//"github.com/gotk3/gotk3/glib"
 )
 var tracks gospotify.Tracks
 var dirChosen bool = false
+var labelList *list.List = list.New()
 //go build -ldflags -H=windowsgui    flags to hide cmd in exe
 
-type Dir struct {
-	s string
-}
-func (d *Dir) SetString(ss string) {
-	d.s = ss
-}
 func main() {
 	fmt.Println("Welcome to the spotify data analyser.")
-	tracks.TotalTimePlayed("Days")
-	tracks.FindArtist("Ariana Grande")
-	tracks.FindArtist("Tame Impala")
-	tracks.FindArtist("Justin Bieber")
-	tracks.FindArtist("Jhené Aiko")
-	tracks.FindArtist("Drake")
-	tracks.FindTrackName("Borderline")
-	tracks.FindTrackName("Bad Day")
-	tracks.FindTrackName("Lost in Yesterday")
-	tracks.FindTrackName("Imagination")
-	tracks.FindTrackName("God is a Woman")
-	tracks.FindArtistTracks("Future")
-	tracks.FindArtistPlayed()
-	tracks.AverageTimePlayed("Seconds")
+	// tracks.TotalTimePlayed("Days")
+	// tracks.FindArtistTracksNo("Ariana Grande")
+	// tracks.FindArtistTracksNo("Tame Impala")
+	// tracks.FindArtistTracksNo("Justin Bieber")
+	// tracks.FindArtistTracksNo("Jhené Aiko")
+	// tracks.FindArtistTracksNo("Drake")
+	// tracks.FindTrackName("Borderline")
+	// tracks.FindTrackName("Bad Day")
+	// tracks.FindTrackName("Lost in Yesterday")
+	// tracks.FindTrackName("Imagination")
+	// tracks.FindTrackName("God is a Woman")
+	// tracks.FindArtistTracks("Future")
+	// tracks.FindArtistPlayed()
+	// tracks.AverageTimePlayed("Seconds")
 
 	// Initialize GTK without parsing any command line arguments.
 	gtk.Init(nil)
@@ -59,7 +56,8 @@ func main() {
 	// }
 	// grid.SetOrientation(gtk.ORIENTATION_VERTICAL)
 	//Create a new label widget to show in the window.
-	welcome := createLabel("Welcome to the Spotify Analyser")
+	welcome := createLabelObj("")
+	welcome.SetMarkup("<big><b>Welcome to the Spotify Analyser</b></big>")
 
 	// // Add the label to the window.
 	// win.Add(l)
@@ -113,38 +111,6 @@ func setup_grid(orient gtk.Orientation) *gtk.Grid {
 	return grid
 }
 
-func setup_tview() *gtk.TextView {
-	tv, err := gtk.TextViewNew()
-	if err != nil {
-		log.Fatal("Unable to create TextView:", err)
-	}
-	return tv
-}
-
-func get_buffer_from_tview(tv *gtk.TextView) *gtk.TextBuffer {
-	buffer, err := tv.GetBuffer()
-	if err != nil {
-		log.Fatal("Unable to get buffer:", err)
-	}
-	return buffer
-}
-
-func get_text_from_tview(tv *gtk.TextView) string {
-	buffer := get_buffer_from_tview(tv)
-	start, end := buffer.GetBounds()
-
-	text, err := buffer.GetText(start, end, true)
-	if err != nil {
-		log.Fatal("Unable to get text:", err)
-	}
-	return text
-}
-
-func set_text_in_tview(tv *gtk.TextView, text string) {
-	buffer := get_buffer_from_tview(tv)
-	buffer.SetText(text)
-}
-
 func createEmptyButton(label string) *gtk.Button {
 	btn, err := gtk.ButtonNewWithLabel(label)
 	if err != nil {
@@ -152,7 +118,7 @@ func createEmptyButton(label string) *gtk.Button {
 	}
 	return btn
 }
-func createLabel(label string) *gtk.Label {
+func createLabelObj(label string) *gtk.Label {
 	l, err := gtk.LabelNew(label)
 	if err != nil {
 		log.Fatal("Unable to create label:", err)
@@ -172,29 +138,91 @@ func setup_dialog(win *gtk.Window, message string) *gtk.MessageDialog {
 		gtk.MESSAGE_INFO, gtk.BUTTONS_OK, "%s", message)
 	return dialog
 }
+func setup_entry() *gtk.Entry {
+	entry, err := gtk.EntryNew()
+	if err != nil {
+		log.Fatal("Unable to create new entry ", err)
+	}
+	entry.SetVisibility(true)
+	return entry
+}
+
+func getDialogContentArea(dialog *gtk.MessageDialog) *gtk.Box {
+	box, err := dialog.GetContentArea()
+	if err != nil {
+		log.Fatal("Unable to get content area of dialog: ", err)
+	}
+	return box
+}
+
+func getEntryText(entry *gtk.Entry) string {
+	text, err := entry.GetText()
+	if err != nil {
+		log.Fatal("Unable to get text of entry: ", err)
+	}
+	return text
+}
+
+func createLabel(grid *gtk.Grid, s string) {
+	l := createLabelObj("")
+	l.SetMarkup(s)
+	labelList.PushBack(l)
+	grid.Add(l)
+	l.SetHExpand(true)
+	grid.ShowAll()
+}
+
+func createLabelNoMarkup(grid *gtk.Grid, s string) {
+	l := createLabelObj(s)
+	labelList.PushBack(l)
+	grid.Add(l)
+	l.SetHExpand(true)
+	grid.ShowAll()
+}
+
+func removeAllLabels() {
+	for e := labelList.Front(); e!= nil; e = e.Next() {
+		lab, ok := labelList.Remove(e).(*gtk.Label)
+		if !ok {
+			log.Print("Element to remove is not a *gtk.Label")
+			return
+		}
+		lab.Destroy()
+	}
+}
 
 func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 	var buttons []*gtk.Button
 	var dir string
 
 	dirBtn := createEmptyButton("Choose Data Folder")
-	totalTimeBtn := createEmptyButton("Total Time played")
+	totalTimeBtn := createEmptyButton("Total Time Played")
+	FindArtistBtn := createEmptyButton("Find Artist Tracks")
 
 	dirBtn.Connect("clicked", func() {
+
 		fileDialogue, _ := gtk.FileChooserDialogNewWith2Buttons("Select folder",
 			win,gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
 			"Cancel", gtk.RESPONSE_CANCEL, 
    			"OK", gtk.RESPONSE_OK)
 
-
    		res := fileDialogue.Run()
    		if (res == gtk.RESPONSE_OK) {
+   			removeAllLabels()
    			dir = fileDialogue.FileChooser.GetURI()
    			dir = strings.Trim(dir, "file:///")
    			dir = strings.Replace(dir,"/","\\",-1)
    			dirChosen = true
    			fmt.Println(dir)
-   			tracks = gospotify.OpenJsonTracks("StreamingHistory",dir)
+   			var fileURLs string
+   			tracks, fileURLs = gospotify.OpenJsonTracks("StreamingHistory",dir)
+   			if len(tracks) == 0 {
+   				createLabel(labelsGrid, 
+   					"\nNo StreamingHistory.json " +
+   					"files found in this directory: \n" + dir + "\n")
+   			} else {
+   				createLabel(labelsGrid, "\n" + fileURLs + "\n")
+   			}
    			fileDialogue.Destroy()
 
    		}
@@ -205,24 +233,66 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 
 	totalTimeBtn.Connect("clicked", func() {
 		if (dirChosen == false) {
-			l := createLabel("Please specify the data folder location")
-			labelsGrid.Add(l)
-			l.SetHExpand(true)
-			labelsGrid.ShowAll()
+			createLabel(labelsGrid, 
+				"<b>Please specify the data folder location</b>\n")
 		} else {
-			// dlg := gtk.MessageDialogNew(win, gtk.DIALOG_DESTROY_WITH_PARENT, 
-			// 	gtk.MESSAGE_INFO, gtk.BUTTONS_OK, "%s", "Pleas")
-			value := tracks.TotalTimePlayed("Days")
-			s := fmt.Sprintf("Total time played: %.3f.", value)
-			l := createLabel(s)
-			labelsGrid.Add(l)
-			l.SetHExpand(true)
-			labelsGrid.ShowAll()
+			btnDlg := setup_dialog(win, 
+				"Select the time format (days, hours, minutes), default: seconds")
+			dlgBox := getDialogContentArea(btnDlg)
+
+			userEntry := setup_entry()
+			dlgBox.PackEnd(userEntry, false, false, 0)
+			btnDlg.ShowAll()
+
+			res := btnDlg.Run()
+			input := getEntryText(userEntry)
+			if (res == gtk.RESPONSE_OK && len(input) != 0) {
+				input = strings.ToLower(input)
+				value, format := tracks.TotalTimePlayed(input)
+				s := fmt.Sprintf("<b>Total time played:</b> %.3f %s.\n", value, format)
+				createLabel(labelsGrid, s)
+			} else {
+				createLabel(labelsGrid, "<b>Please enter a value.</b>\n")
+			}
+			btnDlg.Destroy()
+		}
+	})
+
+	FindArtistBtn.Connect("clicked", func() {
+		if (dirChosen == false) {
+			createLabel(labelsGrid, 
+				"<b>Please specify the data folder location</b>")
+		} else {
+			btnDlg := setup_dialog(win, 
+				"Select the Artist to search")
+			dlgBox := getDialogContentArea(btnDlg)
+			userEntry := setup_entry()
+			dlgBox.PackEnd(userEntry, false, false, 0)
+			btnDlg.ShowAll()
+
+			res := btnDlg.Run()
+			input := getEntryText(userEntry)
+			if (res == gtk.RESPONSE_OK && len(input) != 0) {
+				noOfTracks := tracks.FindArtistTracksNo(input)
+				artistTracks := tracks.FindArtistTracks(input).ToString()
+				if len(artistTracks) == 0 {
+					createLabel(labelsGrid, "<b>No Tracks found for " + input + "</b>\n")
+				} else {
+					s := fmt.Sprintf("<b>No. of times %s was played:</b> %v", input,
+					 noOfTracks)
+					createLabel(labelsGrid, s)
+					createLabelNoMarkup(labelsGrid, artistTracks + "\n")
+				}
+			} else {
+				createLabel(labelsGrid, "<b>Please enter an artist.</b>\n")
+			}
+			btnDlg.Destroy()
 		}
 	})
 
 	buttons = append(buttons,dirBtn)
 	buttons = append(buttons,totalTimeBtn)
+	buttons = append(buttons,FindArtistBtn)
 
 	return buttons
 
