@@ -198,6 +198,7 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 	dirBtn := createEmptyButton("Choose Data Folder")
 	totalTimeBtn := createEmptyButton("Total Time Played")
 	FindArtistBtn := createEmptyButton("Find Artist Tracks")
+	clearBtn := createEmptyButton("Clear Output")
 
 	dirBtn.Connect("clicked", func() {
 
@@ -208,7 +209,6 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 
    		res := fileDialogue.Run()
    		if (res == gtk.RESPONSE_OK) {
-   			removeAllLabels()
    			dir = fileDialogue.FileChooser.GetURI()
    			dir = strings.Trim(dir, "file:///")
    			dir = strings.Replace(dir,"/","\\",-1)
@@ -290,9 +290,14 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 		}
 	})
 
+	clearBtn.Connect("clicked", func() {
+		removeAllLabels()
+	})
+
 	buttons = append(buttons,dirBtn)
 	buttons = append(buttons,totalTimeBtn)
 	buttons = append(buttons,FindArtistBtn)
+	buttons = append(buttons, clearBtn)
 
 	return buttons
 
