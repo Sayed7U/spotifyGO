@@ -100,16 +100,21 @@ func (T Tracks) AverageTimePlayed(format string) (float64, string) {
 	return AvgTime, format
 }
 
-func (T Tracks) FindArtistTracksNo(artist string) int{
+func (T Tracks) FindArtistTracksNo(artist string) (int, string) {
 	var ret_tracks Tracks
 	for i, _ := range T {
 		if strings.EqualFold(T[i].ArtistName,artist) {
 			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
-	fmt.Printf("No. of times %s was played: %v \n",
+	if len(ret_tracks) == 0 {
+		fmt.Printf("No tracks found for %s.\n", artist)
+		return 0, artist
+	}
+	fmt.Printf("No. of times %s was played: %v.\n",
 		artist, len(ret_tracks))
-	return len(ret_tracks)
+	retArtist := ret_tracks[0].ArtistName
+	return len(ret_tracks), retArtist
 }
 
 func (T Tracks) ToString() string {
@@ -137,24 +142,25 @@ func (T Tracks) FindArtistTracks(artist string) Tracks{
 	return ret_tracks
 }
 
-func (T Tracks) FindTrackName(trackname string) Tracks{
-	var artist string
+func (T Tracks) FindTrackName(trackname string) (int, string, string){
 	var ret_tracks Tracks
 	for i, _ := range T {
 		if strings.EqualFold(T[i].TrackName,trackname) {
-			artist = T[i].ArtistName
 			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
-	fmt.Println("No. of times", trackname,"by", artist,
-		"was played:",len(ret_tracks))
-	return ret_tracks
+	artist := ret_tracks[0].ArtistName
+	track := ret_tracks[0].TrackName
+	s := fmt.Sprintf("No. of times %s by %s was played: %v",
+		track, artist, len(ret_tracks))
+	fmt.Println(s)
+	return len(ret_tracks),track,artist
 }
 
 
-func (T Tracks) FindArtistPlayed() PairList{
+func (T Tracks) FindArtistPlayed() (string,int) {
 	dupfreq := Dup_Count(T)
-	pl := rankByWordCount(dupfreq)
+	// pl := rankByWordCount(dupfreq)
 	var plays []int
 	var mostPlayed string
 	var mostPlayedV int
@@ -167,12 +173,10 @@ func (T Tracks) FindArtistPlayed() PairList{
 		}
 		plays = append(plays,value)
 	}
-
-
-
-	fmt.Println("The most played artist is", mostPlayed,
-		"with", mostPlayedV, "plays.")
-	return pl
+	s := fmt.Sprintf("<b>The most played artist is %s:</b> %v.\n",
+			mostPlayed, mostPlayedV)
+	fmt.Println(s)
+	return mostPlayed, mostPlayedV
 }
 
 // func main() {
