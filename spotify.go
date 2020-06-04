@@ -181,7 +181,8 @@ func createLabelNoMarkup(grid *gtk.Grid, s string) {
 }
 
 func removeAllLabels() {
-	for e := labelList.Front(); e!= nil; e = e.Next() {
+	for (labelList.Len() != 0) {
+		e := labelList.Back()
 		lab, ok := labelList.Remove(e).(*gtk.Label)
 		if !ok {
 			log.Print("Element to remove is not a *gtk.Label")
@@ -196,7 +197,7 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 	var dir string
 
 	dirBtn := createEmptyButton("Choose Data Folder")
-	totalTimeBtn := createEmptyButton("Total Time Played")
+	totalTimeBtn := createEmptyButton("Time Played")
 	FindArtistBtn := createEmptyButton("Find Artist Tracks")
 	clearBtn := createEmptyButton("Clear Output")
 
@@ -209,6 +210,7 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 
    		res := fileDialogue.Run()
    		if (res == gtk.RESPONSE_OK) {
+   			removeAllLabels()
    			dir = fileDialogue.FileChooser.GetURI()
    			dir = strings.Trim(dir, "file:///")
    			dir = strings.Replace(dir,"/","\\",-1)
@@ -249,7 +251,10 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 			if (res == gtk.RESPONSE_OK && len(input) != 0) {
 				input = strings.ToLower(input)
 				value, format := tracks.TotalTimePlayed(input)
-				s := fmt.Sprintf("<b>Total time played:</b> %.3f %s.\n", value, format)
+				value2, _:= tracks.AverageTimePlayed("seconds")
+				s := fmt.Sprintf("<b>Total time played:</b> %.3f %s.\n" +
+					"<b> Average time played:</b> %.3f seconds.\n", value, format, 
+					value2)
 				createLabel(labelsGrid, s)
 			} else {
 				createLabel(labelsGrid, "<b>Please enter a value.</b>\n")

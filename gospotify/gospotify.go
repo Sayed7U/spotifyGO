@@ -76,18 +76,19 @@ func (T Tracks) TotalTimePlayed(format string) (float64, string) {
 	return Time, format
 }
 
-func (T Tracks) AverageTimePlayed(format string) float64{
+func (T Tracks) AverageTimePlayed(format string) (float64, string) {
+	format = strings.ToLower(format)
 	var Time float64
 	for i, _ := range T {
 		Time += float64(T[i].MsPlayed)
 	}
 	switch format {
-	case "Days":
+	case "days":
 		Time = Time / (1000 * 60 * 60 * 24)
-	case "Hours":
+	case "hours":
 		Time = Time / (1000 * 60 * 60)
 
-	case "Minutes":
+	case "minutes":
 		Time = Time / (1000 * 60)
 
 	default:
@@ -96,7 +97,7 @@ func (T Tracks) AverageTimePlayed(format string) float64{
 	AvgTime := Time/float64(len(T))
 	fmt.Printf("The average time played: %.3f %s.\n", 
 		AvgTime,format)
-	return AvgTime
+	return AvgTime, format
 }
 
 func (T Tracks) FindArtistTracksNo(artist string) int{
