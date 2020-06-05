@@ -65,12 +65,11 @@ func main() {
 	buttons := createButtons(win, labelsGrid)
 	buttonGrid := setup_grid(gtk.ORIENTATION_VERTICAL)
 
-	for i := 0; i < len(buttons)-1; i++ {
-		buttonGrid.Attach(buttons[i],i,0,1,1)
+	buttonGrid.Attach(buttons[0],0,0,10,1)
+	for i := 1; i < len(buttons)-1; i++ {
+		buttonGrid.Attach(buttons[i],i,1,1,1)
 	}
-
-	//width := int(factorial(len(buttons)))
-	buttonGrid.Attach(buttons[len(buttons)-1],0,1,10,1)
+	buttonGrid.Attach(buttons[len(buttons)-1],0,2,10,1)
 
 	box.PackStart(sw,true, true, 0)
 	box.PackStart(buttonGrid, false, false, 0)
@@ -214,10 +213,12 @@ func removeAllLabels() {
 func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 	var buttons []*gtk.Button
 	var dir string
+	var format string = "hours"
 
 	dirBtn := createEmptyButton("Choose Data Folder")
 	totalTimeBtn := createEmptyButton("Time Played")
 	FindArtistBtn := createEmptyButton("Find Artist Tracks")
+	FindAllArtistPlaysBtn := createEmptyButton("Find All Artist Plays")
 	findTrackBtn := createEmptyButton("Find Track")
 	mostPlayedBtn := createEmptyButton("Most Played Artist")
 	clearBtn := createEmptyButton("Clear Output")
@@ -272,7 +273,8 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 			input := getEntryText(userEntry)
 			if (res == gtk.RESPONSE_OK && len(input) != 0) {
 				input = strings.ToLower(input)
-				value, format := tracks.TotalTimePlayed(input)
+				var value float64
+				value, format = tracks.TotalTimePlayed(input)
 				value2, _:= tracks.AverageTimePlayed("seconds")
 				s := fmt.Sprintf("<b>Total time played:</b> %.3f %s.\n" +
 					"<b>Average time played:</b> %.3f seconds.\n", value, format, 
@@ -305,8 +307,10 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 					createLabel(labelsGrid, "<b>No Tracks found for " + input + ".</b>\n")
 				} else {
 					artistTracks := tracks.FindArtistTracks(input).ToString()
-					s := fmt.Sprintf("<b>No. of times a track by %s was played:</b> %v.", artist,
-					 noOfTracks)
+					artistTime := tracks.FindTimePlayedArtist(input, format)
+					s := fmt.Sprintf("<b> %s:</b> %v plays.\n " + 
+						"<b>Time played:</b> %.3f %s.", artist,
+					 noOfTracks, artistTime, format)
 					createLabel(labelsGrid, s)
 					createLabelNoMarkup(labelsGrid, artistTracks + "\n")
 				}
@@ -314,6 +318,20 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 				createLabel(labelsGrid, "<b>Please enter an artist.</b>\n")
 			}
 			btnDlg.Destroy()
+		}
+	})
+
+	FindAllArtistPlaysBtn.Connect("clicked", func() {
+		var n int = 20
+		if (dirChosen == false) {
+			createLabel(labelsGrid, 
+				"\n<b>Please specify the data folder location</b>")
+		} else {
+			artistPlays := tracks.FindAllArtistPlays().ToStringSlice()
+			s := strings.Join(artistPlays[:n],"\n")
+			s1 := fmt.Sprintf("<b>The top %v artists are:</b>", n)
+			createLabel(labelsGrid, s1)
+			createLabelNoMarkup(labelsGrid, s + "\n")
 		}
 	})
 
@@ -352,8 +370,8 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 			createLabel(labelsGrid, 
 				"\n<b>Please specify the data folder location</b>")
 		} else {
-			artist, plays := tracks.FindArtistPlayed()
-			s := fmt.Sprintf("<b>The most played artist is %s:</b> %v.\n",
+			artist, plays := tracks.FindMostPlayed()
+			s := fmt.Sprintf("<b>The most played artist is %s with </b> %v plays.\n",
 			artist, plays)
 			createLabel(labelsGrid, s)
 		}
@@ -363,9 +381,10 @@ func createButtons(win *gtk.Window, labelsGrid *gtk.Grid) []*gtk.Button {
 		removeAllLabels()
 	})
 
-	buttons = append(buttons,dirBtn)
-	buttons = append(buttons,totalTimeBtn)
-	buttons = append(buttons,FindArtistBtn)
+	buttons = append(buttons, dirBtn)
+	buttons = append(buttons, totalTimeBtn)
+	buttons = append(buttons, FindArtistBtn)
+	buttons = append(buttons, FindAllArtistPlaysBtn)
 	buttons = append(buttons, findTrackBtn)
 	buttons = append(buttons, mostPlayedBtn)
 	buttons = append(buttons, clearBtn)

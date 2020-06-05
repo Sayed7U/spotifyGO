@@ -100,6 +100,28 @@ func (T Tracks) AverageTimePlayed(format string) (float64, string) {
 	return AvgTime, format
 }
 
+func (T Tracks) FindTimePlayedArtist(artist string, format string) float64 {
+	var timePlayed float64
+	for i, _ := range T {
+		if strings.EqualFold(T[i].ArtistName,artist) {
+			timePlayed += float64(T[i].MsPlayed) 
+		}
+	}
+	switch format {
+	case "days":
+		timePlayed =	timePlayed / (1000 * 60 * 60 * 24)
+	case "hours":
+		timePlayed =	timePlayed / (1000 * 60 * 60)
+
+	case "minutes":
+		timePlayed =	timePlayed / (1000 * 60)
+
+	default:
+		timePlayed =	timePlayed / 1000
+	}
+	return timePlayed
+}
+
 func (T Tracks) FindArtistTracksNo(artist string) (int, string) {
 	var ret_tracks Tracks
 	for i, _ := range T {
@@ -149,6 +171,10 @@ func (T Tracks) FindTrackName(trackname string) (int, string, string){
 			ret_tracks = append(ret_tracks, T[i])
 		}
 	}
+	if (len(ret_tracks) == 0) {
+		fmt.Printf("No tracks found with name %s.\n",trackname)
+		return 0, "",""
+	}
 	artist := ret_tracks[0].ArtistName
 	track := ret_tracks[0].TrackName
 	s := fmt.Sprintf("No. of times %s by %s was played: %v",
@@ -158,7 +184,7 @@ func (T Tracks) FindTrackName(trackname string) (int, string, string){
 }
 
 
-func (T Tracks) FindArtistPlayed() (string,int) {
+func (T Tracks) FindMostPlayed() (string,int) {
 	dupfreq := Dup_Count(T)
 	// pl := rankByWordCount(dupfreq)
 	var plays []int
@@ -177,6 +203,13 @@ func (T Tracks) FindArtistPlayed() (string,int) {
 			mostPlayed, mostPlayedV)
 	fmt.Println(s)
 	return mostPlayed, mostPlayedV
+}
+
+func (T Tracks) FindAllArtistPlays() PairList {
+	dupfreq := Dup_Count(T)
+	pl := rankByWordCount(dupfreq)
+
+	return pl
 }
 
 // func main() {
@@ -251,4 +284,13 @@ type PairList []Pair
 func (p PairList) Len() int { return len(p) }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
 func (p PairList) Swap(i, j int){ p[i], p[j] = p[j], p[i] }
+
+func (p PairList) ToStringSlice() []string {
+	var pairString []string
+	for i := range p {
+		s := fmt.Sprintf("%s with %v plays.", p[i].Key, p[i].Value)
+		pairString = append(pairString, s)
+	}
+	return pairString
+}
 
